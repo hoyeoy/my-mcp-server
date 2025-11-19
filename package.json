@@ -1,0 +1,10 @@
+{
+  "name": "mcp-server",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@vercel/kv": "latest",
+    "fastmcp": "latest",
+    "resend": "latest"
+  }
+}
