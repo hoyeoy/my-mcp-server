@@ -35,6 +35,9 @@ def clean_sheet_values(values):
         clean_data.append(clean_row)
     return clean_data
 
+def remove_empty_rows(data):
+    return [row for row in data if any(cell.strip() for cell in row)]
+
 # -----------------------------
 # 구글 인증 로직
 # -----------------------------
@@ -74,11 +77,13 @@ def get_sheet():
         sheet = get_client().open_by_key(SPREADSHEET_ID).worksheet(WORKSHEET_NAME)
         values = sheet.get_all_values() 
         cleaned_values = clean_sheet_values(values)  # 한글 정제 추가
+        filtered_values = remove_empty_rows(cleaned_values)
+
 
         return jsonify({
-            "data": cleaned_values,
-            "rows": len(cleaned_values),
-            "columns": len(cleaned_values[0]) if cleaned_values else 0
+            "data": filtered_values,
+            "rows": len(filtered_values),
+            "columns": len(filtered_values[0]) if filtered_values else 0
          }), 200, {'Content-Type': 'application/json; charset=utf-8'}
 
     except Exception as e:
