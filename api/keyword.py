@@ -33,7 +33,12 @@ def get_client():
         _client = gspread.authorize(load_credentials())
     return _client
 
+# 기존 루트 + 새 라우트 추가
 @app.route("/")
+def get_sheet_root():
+    return jsonify({"message": "API is running! Use /api/keyword for data."})
+
+@app.route("/api/keyword", methods=["GET"])
 def get_sheet():
     try:
         sheet = get_client().open_by_key(SPREADSHEET_ID).worksheet(WORKSHEET_NAME)
