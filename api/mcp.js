@@ -1,74 +1,52 @@
-// api/mcp.js
+// api/mcp.js  ← 이 파일 하나만 교체하고 git push 하면 끝!
 
-export const config = {
-  runtime: "nodejs"
-};
-
-import { FastMCP } from "fastmcp";
 import { kv } from "@vercel/kv";
 import { Resend } from "resend";
-
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// ✅ 구버전 fastmcp 스타일: createServer() X, new FastMCP() O
-const server = new FastMCP({
-  transports: ["http"]
-});
-
-// ------------------------------
-// Redis(Vercel KV) SET
-// ------------------------------
-server.tool("redis_set", {
-  description: "Set a value in Vercel KV (Redis 기반)",
-  input: {
-    key: "string",
-    value: "string"
-  },
-  execute: async ({ key, value }) => {
-    await kv.set(key, value);
-    return { status: "ok" };
-  }
-});
-
-// ------------------------------
-// Redis(Vercel KV) GET
-// ------------------------------
-server.tool("redis_get", {
-  description: "Get a value from Vercel KV (Redis 기반)",
-  input: {
-    key: "string"
-  },
-  execute: async ({ key }) => {
-    const value = await kv.get(key);
-    return value;
-  }
-});
-
-// ------------------------------
-// 이메일 전송
-// ------------------------------
-server.tool("email_send", {
-  description: "Send email via Resend",
-  input: {
-    to: "string",
-    subject: "string",
-    body: "string"
-  },
-  execute: async ({ to, subject, body }) => {
-    await resend.emails.send({
-      from: "MCP Server <no-reply@example.com>",
-      to,
-      subject,
-      html: `<pre>${body}</pre>`
-    });
-
-    return { status: "sent" };
-  }
-});
-
-// ------------------------------
-// Vercel Serverless handler
-// ------------------------------
 export default async function handler(req, res) {
-  return server.handleNodeRequest(req, res);
+  // CORS 허용
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+
+  const { tool_calls } = req.body || {};
+
+  if (!Array.isArray(tool_calls)) {
+    return res.status(400).json({ error: "tool_calls 배열 필요" });
+  }
+
+  const tool_results = [];
+
+  for (const call of tool_calls) {
+    const { name, arguments: args } = call;
+
+    if (name === "kv_put" && args?.key && args?.value !== undefined) {
+      await kv.set(args.key, args.value);
+      tool_results.push({ name, result: { status: "ok" } });
+
+    } else if (name === "kv_get" && args?.key) {
+      const value = await kv.get(args.key);
+      tool_results.push({ name, result: value });
+
+    } else if (name === "email_send" && args?.to && args?.subject && args?.body) {
+      await resend.emails.send({
+        from: "MCP Server <onboarding@resend.dev>",
+        to: args.to,
+        subject: args.subject,
+        html: `<pre>${args.body}</pre>`,
+      });
+      tool_results.push({ name, result: { status: "sent" } });
+
+    } else {
+      tool_results.push({ name, result: null, error: "Invalid call" });
+    }
+  }
+
+  return res.json({ tool_results });
 }
+
+// 이거만 있으면 raw body 잘 읽음
+export const config = { api: { bodyParser: true } };
