@@ -7,6 +7,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from flask import Flask, jsonify
 
 app = Flask(__name__)
+app.config["JSON_AS_ASCII"] = False
 
 # 고정할 스프레드시트 ID와 시트 이름
 SPREADSHEET_ID = "1mLu3DIwf3Lsv85mb2LYPziPoFqRhlLCj1WeoJIUGeLE"          # ← 여기만 바꾸세요 (URL에서 /d/ 뒤에 있는 긴 문자열)
