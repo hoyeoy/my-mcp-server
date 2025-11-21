@@ -42,7 +42,7 @@ def get_sheet_root():
 def get_sheet():
     try:
         sheet = get_client().open_by_key(SPREADSHEET_ID).worksheet(WORKSHEET_NAME)
-        values = sheet.get_all_values().encode("utf-8-sig")
+        values = sheet.get_all_values() 
 
         return jsonify({
             "data": values,
