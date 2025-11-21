@@ -1,5 +1,5 @@
 export const config = {
-  runtime: "nodejs20.x"
+  runtime: "nodejs"
 };
 
 import { createServer } from "fastmcp";
