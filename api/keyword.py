@@ -48,7 +48,7 @@ def get_sheet():
             "data": values,
             "rows": len(values),
             "columns": len(values[0]) if values else 0
-         })
+         }), 200, {'Content-Type': 'application/json; charset=utf-8'}
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
