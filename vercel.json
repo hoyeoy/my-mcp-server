@@ -1,9 +1,12 @@
+
 {
   "version": 2,
-  "builds": [
-    { "src": "api/*.py", "use": "@vercel/python" }
-  ],
+  "functions": {
+    "api/*.js": { "runtime": "nodejs18.x" },
+    "api/*.py": { "runtime": "python3.9" }
+  },
   "routes": [
-    { "src": "/api/keyword", "dest": "api/keyword.py" } 
+    { "src": "/api/keyword", "dest": "api/keyword.py" },
+    { "src": "/api/mcp", "dest": "api/mcp.js" }
   ]
 }
