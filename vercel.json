@@ -4,6 +4,6 @@
     { "src": "api/*.py", "use": "@vercel/python" }
   ],
   "routes": [
-    { "src": "/api/keyworkd", "dest": "api/keyword.py" } 
+    { "src": "/api/keyword", "dest": "api/keyword.py" } 
   ]
 }
