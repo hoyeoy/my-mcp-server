@@ -1,72 +1,86 @@
-export const config = {
-  runtime: "nodejs"
-};
+// api/mcp.js
 
-import { FastMCP } from "fastmcp";
+import { FastMCP } from "fastmcp";  // npm i fastmcp
+import { z } from "zod";  // npm i zod (스키마 검증용)
 import { kv } from "@vercel/kv";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// FastMCP 구버전: createServer 사용 ❌ / new FastMCP() 사용 ⭕
+// FastMCP 서버 생성 (JS 버전 – name/version 필수)
 const server = new FastMCP({
-  transports: ["http"]
+  name: "My MCP Server",
+  version: "1.0.0",
+  transports: ["http"]  // HTTP 전송 지원
 });
 
-// ------------------------------
-// KV 저장
-// ------------------------------
-server.tool("kv_put", {
+// ------------------ 도구 등록: server.addTool() 사용 (tool() 아님!) ------------------
+server.addTool({
+  name: "kv_put",
   description: "Store data into Vercel KV",
-  input: {
-    key: "string",
-    value: "string"
-  },
-  execute: async ({ key, value }) => {
-    await kv.set(key, value);
+  parameters: z.object({  // Zod 스키마 (필수 – Standard Schema 준수)
+    key: z.string(),
+    value: z.string()
+  }),
+  execute: async (args) => {
+    await kv.set(args.key, args.value);
     return { status: "ok" };
   }
 });
 
-// ------------------------------
-// KV 읽기
-// ------------------------------
-server.tool("kv_get", {
+server.addTool({
+  name: "kv_get",
   description: "Get data from Vercel KV",
-  input: {
-    key: "string"
-  },
-  execute: async ({ key }) => {
-    return await kv.get(key);
+  parameters: z.object({
+    key: z.string()
+  }),
+  execute: async (args) => {
+    return await kv.get(args.key);
   }
 });
 
-// ------------------------------
-// 이메일 전송
-// ------------------------------
-server.tool("email_send", {
+server.addTool({
+  name: "email_send",
   description: "Send email via Resend",
-  input: {
-    to: "string",
-    subject: "string",
-    body: "string"
-  },
-  execute: async ({ to, subject, body }) => {
+  parameters: z.object({
+    to: z.string().email(),
+    subject: z.string(),
+    body: z.string()
+  }),
+  execute: async (args) => {
     await resend.emails.send({
-      from: "MCP Server <no-reply@example.com>",
-      to,
-      subject,
-      html: `<pre>${body}</pre>`
+      from: "MCP Server <onboarding@resend.dev>",  // 테스트용 – 도메인 인증 추천
+      to: args.to,
+      subject: args.subject,
+      html: `<pre>${args.body}</pre>`
     });
-
     return { status: "sent" };
   }
 });
 
-// ------------------------------
-// Vercel Serverless Handler
-// ------------------------------
+// ------------------ Vercel 핸들러 ------------------
 export default async function handler(req, res) {
-  // FastMCP 구버전은 handleNodeRequest를 사용
+  // CORS 헤더 (MCP 클라이언트 호환)
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return;
+  }
+
+  if (req.method !== "POST") {
+    res.status(405).json({ error: "Method Not Allowed" });
+    return;
+  }
+
+  // FastMCP HTTP 핸들러 위임 (JS 버전 자동 처리)
   return server.handleNodeRequest(req, res);
 }
+
+export const config = {
+  api: {
+    bodyParser: false  // MCP raw body 필요
+  }
+};
