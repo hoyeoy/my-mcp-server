@@ -1,5 +1,5 @@
 // api/mcp.js  ← 이 파일 하나만 교체하고 git push 하면 끝!
-
+/*
 import { kv } from "@vercel/kv";
 import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -50,3 +50,4 @@ export default async function handler(req, res) {
 
 // 이거만 있으면 raw body 잘 읽음
 export const config = { api: { bodyParser: true } };
+*/
