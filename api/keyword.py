@@ -47,9 +47,8 @@ def get_sheet():
         return jsonify({
             "data": values,
             "rows": len(values),
-            "columns": len(values[0]) if values else 0,
-            "updated_at": sheet.updated  # 구글 시트 마지막 수정 시간 
-        })
+            "columns": len(values[0]) if values else 0
+         })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
