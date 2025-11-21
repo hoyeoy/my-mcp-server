@@ -10,8 +10,32 @@ app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
 
 # 고정할 스프레드시트 ID와 시트 이름
-SPREADSHEET_ID = "1mLu3DIwf3Lsv85mb2LYPziPoFqRhlLCj1WeoJIUGeLE"          # ← 여기만 바꾸세요 (URL에서 /d/ 뒤에 있는 긴 문자열)
-WORKSHEET_NAME = "Sheet1"                     # ← 필요하면 시트 이름 바꾸세요
+SPREADSHEET_ID = "1mLu3DIwf3Lsv85mb2LYPziPoFqRhlLCj1WeoJIUGeLE"          # URL에서 /d/ 뒤에 있는 긴 문자열
+WORKSHEET_NAME = "Sheet1"                     # Sheet1: 포트폴리오 모니터링 
+
+# -----------------------------
+# 유틸 함수: 한글 정규화 + 제어문자 제거
+# -----------------------------
+def clean_korean_text(raw_text: str) -> str:
+    """한글 인코딩 깨짐 방지 및 공백 제거"""
+    if not isinstance(raw_text, str):
+        return str(raw_text)
+    text = unicodedata.normalize("NFC", raw_text)  # 조합형 통일
+    text = text.replace("\u200b", "")              # 제로폭 공백 제거
+    text = text.strip()                            # 앞뒤 공백 제거
+    return text
+
+def clean_sheet_values(values):
+    """2차원 배열로 받은 구글시트 데이터를 정제"""
+    clean_data = []
+    for row in values:
+        clean_row = [clean_korean_text(cell) for cell in row]
+        clean_data.append(clean_row)
+    return clean_data
+
+# -----------------------------
+# 구글 인증 로직
+# -----------------------------
 
 def load_credentials():
     service_account_json = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
@@ -34,6 +58,9 @@ def get_client():
         _client = gspread.authorize(load_credentials())
     return _client
 
+# -----------------------------
+# 라우트
+# -----------------------------
 # 기존 루트 + 새 라우트 추가
 @app.route("/")
 def get_sheet_root():
@@ -44,15 +71,18 @@ def get_sheet():
     try:
         sheet = get_client().open_by_key(SPREADSHEET_ID).worksheet(WORKSHEET_NAME)
         values = sheet.get_all_values() 
+        cleaned_values = clean_sheet_values(values)  # 한글 정제 추가
 
         return jsonify({
-            "data": values,
-            "rows": len(values),
-            "columns": len(values[0]) if values else 0
+            "data": cleaned_values,
+            "rows": len(cleaned_values),
+            "columns": len(cleaned_values[0]) if cleaned_values else 0
          }), 200, {'Content-Type': 'application/json; charset=utf-8'}
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Vercel용 export
+# -----------------------------
+# Vercel export
+# -----------------------------
 export = app
