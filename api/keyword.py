@@ -48,7 +48,7 @@ def get_sheet():
             "data": values,
             "rows": len(values),
             "columns": len(values[0]) if values else 0,
-            "updated_at": sheet.updated  # 구글 시트 마지막 수정 시간도 같이 주면 편해요
+            "updated_at": sheet.updated  # 구글 시트 마지막 수정 시간 
         })
 
     except Exception as e:
