@@ -1,52 +1,57 @@
-// api/mcp.js  ← 이 파일 하나만 교체하고 git push 하면 끝!
-
+import { FastMCP } from "fastmcp";
 import { kv } from "@vercel/kv";
 import { Resend } from "resend";
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(req, res) {
-  // CORS 허용
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+  const server = new FastMCP({
+    transports: ["http"]
+  });
 
-  const { tool_calls } = req.body || {};
-
-  if (!Array.isArray(tool_calls)) {
-    return res.status(400).json({ error: "tool_calls 배열 필요" });
-  }
-
-  const tool_results = [];
-
-  for (const call of tool_calls) {
-    const { name, arguments: args } = call;
-
-    if (name === "kv_put" && args?.key && args?.value !== undefined) {
-      await kv.set(args.key, args.value);
-      tool_results.push({ name, result: { status: "ok" } });
-
-    } else if (name === "kv_get" && args?.key) {
-      const value = await kv.get(args.key);
-      tool_results.push({ name, result: value });
-
-    } else if (name === "email_send" && args?.to && args?.subject && args?.body) {
-      await resend.emails.send({
-        from: "MCP Server <onboarding@resend.dev>",
-        to: args.to,
-        subject: args.subject,
-        html: `<pre>${args.body}</pre>`,
-      });
-      tool_results.push({ name, result: { status: "sent" } });
-
-    } else {
-      tool_results.push({ name, result: null, error: "Invalid call" });
+  // 예: GPT들이 크롤링 데이터 저장
+  server.tool("kv_put", {
+    description: "Store data into KV",
+    input: {
+      key: "string",
+      value: "string"
+    },
+    execute: async ({ key, value }) => {
+      await kv.set(key, value);
+      return { status: "ok" };
     }
-  }
+  });
 
-  return res.json({ tool_results });
+  // 데이터 가져오기
+  server.tool("kv_get", {
+    description: "Get data from KV",
+    input: {
+      key: "string"
+    },
+    execute: async ({ key }) => {
+      return await kv.get(key);
+    }
+  });
+
+  // 이메일 보내기
+  server.tool("email_send", {
+    description: "Send email",
+    input: {
+      to: "string",
+      subject: "string",
+      body: "string"
+    },
+    execute: async ({ to, subject, body }) => {
+      await resend.emails.send({
+        from: "MCP Server <no-reply@yourdomain.com>",
+        to,
+        subject,
+        html: `<pre>${body}</pre>`
+      });
+
+      return { status: "sent" };
+    }
+  });
+
+  await server.handleNodeRequest(req, res);
 }
-
-// 이거만 있으면 raw body 잘 읽음
-export const config = { api: { bodyParser: true } };
