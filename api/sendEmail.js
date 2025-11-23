@@ -63,7 +63,7 @@ export default async function handler(req, res) {
   // ------------------ 이메일 발송 ------------------
   try {
     await resend.emails.send({
-      from: "MCP Server <onboarding@resend.dev>",
+      from: "MCP Server <hoyeon.yang@arknpartners.com>",
       to: toArray,                    // ← 여기서 배열도 그대로 넣어줌 (Resend 완벽 지원)
       subject: subject.trim(),
       html: `<pre>${body}</pre>`,
