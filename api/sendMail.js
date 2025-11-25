@@ -1,4 +1,5 @@
 // pages/api/sendMail.js (Next.js 13 이하)
+//  업데이트 재배포
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
