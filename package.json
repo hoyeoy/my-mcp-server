@@ -5,6 +5,7 @@
   "dependencies": {
     "fastmcp": "latest",
     "@vercel/kv": "latest",
-    "resend": "latest"
+    "resend": "latest",
+    "nodemailer": "^6.9.14"
   }
-}
+} 
